@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const itemRoutes = require('../routes/itemRoutes'); // one level up now
+const itemRoutes = require('../routes/itemRoutes');
 const billRoutes = require('../routes/billRoutes');
 
 dotenv.config();
@@ -26,33 +26,27 @@ app.use(cors({
 }));
 app.options('*', cors());
 
-// Body parser
 app.use(express.json());
 
 // Routes
 app.use('/api/items', itemRoutes);
 app.use('/api/bills', billRoutes);
+app.get('/', (req, res) => res.send('Welcome to the Ads Group API'));
 
-app.get('/', (req, res) => {
-  res.send('Welcome to the Ads Group API');
-});
-
-// MongoDB connection
-let isConnected = false;
+// Persistent MongoDB connection for Vercel
+let isConnected;
 async function connectDB() {
   if (isConnected) return;
-  try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
-    isConnected = true;
-    console.log('MongoDB connected');
-  } catch (err) {
-    console.error(err);
-  }
+  if (!process.env.MONGO_URI) throw new Error('MONGO_URI missing in env');
+  
+  const db = await mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  });
+  isConnected = db.connections[0].readyState;
+  console.log('MongoDB connected');
 }
-connectDB();
+connectDB().catch(err => console.error(err));
 
-// Export the serverless function
+// Export for Vercel
 module.exports = app;
