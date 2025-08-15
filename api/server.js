@@ -2,13 +2,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const itemRoutes = require('./routes/itemRoutes');
-const billRoutes = require('./routes/billRoutes');
+const itemRoutes = require('../routes/itemRoutes'); // one level up now
+const billRoutes = require('../routes/billRoutes');
 
 dotenv.config();
 const app = express();
 
-// ✅ CORS config for both local + production
+// CORS config
 const allowedOrigins = [
   'https://ads-group-frontend.vercel.app',
   'http://localhost:3000'
@@ -24,11 +24,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
-// ✅ Handle preflight requests
 app.options('*', cors());
 
-// Middleware
+// Body parser
 app.use(express.json());
 
 // Routes
@@ -39,12 +37,22 @@ app.get('/', (req, res) => {
   res.send('Welcome to the Ads Group API');
 });
 
-// MongoDB connection (Vercel serverless-friendly)
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log('MongoDB connected'))
-.catch(err => console.log(err));
+// MongoDB connection
+let isConnected = false;
+async function connectDB() {
+  if (isConnected) return;
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    isConnected = true;
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error(err);
+  }
+}
+connectDB();
 
-// ✅ Export for Vercel
+// Export the serverless function
 module.exports = app;
